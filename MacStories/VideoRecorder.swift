@@ -15,7 +15,9 @@ class VideoRecorder: NSObject, ObservableObject {
     @Published var isCameraAvailable = false
     @Published var previewLayer: AVCaptureVideoPreviewLayer?
     @Published var audioLevel: Float = 0.0 // For audio wave visualization
+    @Published var timeRemaining: Int = 60
     
+    private var timerCountdown:Timer?
     private var captureSession: AVCaptureSession?
     private var movieOutput: AVCaptureMovieFileOutput?
     private var audioRecorder: AVAudioRecorder?
@@ -153,8 +155,15 @@ class VideoRecorder: NSObject, ObservableObject {
             self?.updateAudioLevel()
         }
         
-        // Stop after 15 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+        timerCountdown = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            if(self != nil){
+                self!.timeRemaining = self!.timeRemaining > 0 ? self!.timeRemaining - 1 : 0
+                print("time remaining=\(self!.timeRemaining)")
+            }
+        }
+        
+        // Stop after 60 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
             if self.isRecording {
                 self.stopRecording()
             }
@@ -165,8 +174,10 @@ class VideoRecorder: NSObject, ObservableObject {
         movieOutput?.stopRecording()
         audioRecorder?.stop()
         levelTimer?.invalidate()
+        timerCountdown?.invalidate()
         levelTimer = nil
         audioLevel = 0.0
+        timeRemaining = 60;
     }
     
     func setupAudioRecorder() {

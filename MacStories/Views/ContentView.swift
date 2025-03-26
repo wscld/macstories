@@ -10,9 +10,9 @@ import AVFoundation
 
 struct ContentView: View {
     @StateObject private var recorder = VideoRecorder()
-    
+
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: -10) {
             // Webcam preview
             if let previewLayer = recorder.previewLayer {
                 VideoPreviewView(previewLayer: previewLayer)
@@ -35,7 +35,7 @@ struct ContentView: View {
             .background {
                 TranslucentBackgroundView()
                     .cornerRadius(16)
-                    .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 6)
+                    .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 6)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .inset(by: 0.5)
