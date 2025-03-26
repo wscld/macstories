@@ -11,11 +11,19 @@ import SwiftUI
 @main
 struct MacStoriesApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-
+    
     var body: some Scene {
         WindowGroup {
             ContentView().background(TranslucentBackgroundView()) // Apply translucency
-        }.windowStyle(HiddenTitleBarWindowStyle()) // Hide title bar for better aesthetics
+        }
+        .windowStyle(HiddenTitleBarWindowStyle()) // Hide title bar for better aesthetics
+        .commands {
+            CommandGroup(replacing: CommandGroupPlacement.appInfo) {
+                Button("About MacStories") {
+                    AboutWindowController.shared?.showWindow() ?? AboutWindowController().showWindow()
+                }
+            }
+        }
     }
 }
 
@@ -43,7 +51,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             view.state = .active
             return view
         }
-
+        
         func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
     }
 }

@@ -21,11 +21,11 @@ struct ContentView: View {
             } else {
                 Text("Camera unavailable")
                     .frame(width: 320, height: 568,alignment: .center)
-
+                
             }
             
-         
-
+            
+            
             VStack(spacing: 10){
                 AudioWaveView(recorder: recorder)
                 RecorderView(recorder: recorder)
@@ -42,7 +42,7 @@ struct ContentView: View {
                             .stroke(Color(red: 0.88, green: 0.88, blue: 1), lineWidth: 0)
                     )
             }
-
+            
         }
         .padding(5)
         .frame(minWidth:330,maxWidth:330,minHeight:750,maxHeight:750)
@@ -77,6 +77,6 @@ struct TranslucentBackgroundView: NSViewRepresentable {
         view.state = .active
         return view
     }
-
+    
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
