@@ -53,12 +53,17 @@ struct RecorderView: View{
                                     .stroke(.black.opacity(0.3), lineWidth: 1)
                             )
                     }
-            }
-            .disabled(!recorder.isCameraAvailable)
+            }.disabled(!recorder.isCameraAvailable || recorder.isSaving)
             Spacer()
-            Text(recorder.isRecording ? "Recording..." : "Ready")
-                .padding()
-                .foregroundColor(recorder.isRecording ? .red : .green)
+            if(recorder.isSaving){
+                Text("Saving...")
+                    .padding()
+                    .foregroundColor(.red)
+            }else{
+                Text(recorder.isRecording ? "Recording..." : "Ready")
+                    .padding()
+                    .foregroundColor(recorder.isRecording ? .red : .black)
+            }
         }
     }
 }
