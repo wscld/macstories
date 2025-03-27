@@ -18,13 +18,19 @@ struct IntroView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            // Left Panel: Features List
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .center, spacing: 10) {
+                
+                Image("macstories")
+                    .resizable()
+                    .cornerRadius(16)
+                    .scaledToFit()
+                    .padding(.top, 20)
+                    .frame(width: 60, height: 60)
+                    .clipped()
+                
                 Text("MacStories")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(.white)
-                    .padding(.top, 20)
-                    .padding(.leading, 20)
                     .opacity(titleOpacity)
                     .offset(x: titleOffset)
                     .onAppear {
@@ -36,11 +42,11 @@ struct IntroView: View {
                 
                 Spacer()
                 
-                Text("Great for")
+                Text("Thank you for purchasing MacStories")
                     .font(.system(size: 18, weight: .regular))
                     .multilineTextAlignment(.leading)
                     .foregroundStyle(.white)
-                    .padding(.leading, 10)
+                    .padding(.bottom, 20)
                 
                 // Feature List with staggered animation
                 ForEach(0..<4) { index in
@@ -56,32 +62,13 @@ struct IntroView: View {
                 
                 Spacer()
             }
-            .frame(width: 300)
+            .frame(width: 650)
             .background(backgroundColor)
             .onAppear {
                 withAnimation(.easeInOut(duration: 1.0)) {
                     backgroundColor = .black
                 }
             }
-            
-            // Right Panel: Call to Action
-            VStack(alignment: .center, spacing: 20) {
-                Spacer()
-                Text("Thank you for \n purchasing MacStories")
-                    .font(.system(size: 18, weight: .bold))
-                    .multilineTextAlignment(.center)
-                    .scaleEffect(ctaScale)
-                    .opacity(ctaOpacity)
-                    .onAppear {
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(1.0)) {
-                            ctaScale = 1.0
-                            ctaOpacity = 1.0
-                        }
-                    }
-                Spacer()
-            }
-            .frame(width: 350)
-            .background(Color.white)
         }
         .frame(width: 650, height: 400)
         .background(Color.gray.opacity(0.1))
@@ -107,7 +94,7 @@ struct FeatureRow: View {
                 .foregroundColor(.white)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 5)
+        .padding(.vertical, 10)
         .background(Color.white.opacity(0.2))
         .cornerRadius(8)
         .padding(.horizontal, 10)

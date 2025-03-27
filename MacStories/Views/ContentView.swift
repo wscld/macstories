@@ -132,20 +132,40 @@ struct ContentView: View {
         }
         .padding(5)
         .frame(minWidth: 340, maxWidth: 340, minHeight: 730, maxHeight: 730)
-        .windowResizeBehavior(.disabled)
+        .background(WindowResizeAndFullscreenDisabler()) // Add this to disable resizing
         .animation(.easeInOut(duration: 0.3), value: appState.showPickers)
-        .onAppear {
+        .onAppear(){
             recorder.setupCamera()
             print("ContentView appeared, calling setupCamera")
-        }.onAppear(){
-            let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore4")
+            let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore5")
             print("hasLaunchedBefore=\(hasLaunchedBefore)")
             if !hasLaunchedBefore {
                 IntroWindowController.shared?.showWindow() ?? IntroWindowController().showWindow()
-                //UserDefaults.standard.set(true, forKey: "hasLaunchedBefore4")
+                //UserDefaults.standard.set(true, forKey: "hasLaunchedBefore5")
             }
         }
     }
+}
+
+struct WindowResizeAndFullscreenDisabler: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window {
+                // Disable resizing
+                window.styleMask.remove(.resizable)
+                // Disable fullscreen button
+                window.collectionBehavior = .managed // Remove fullscreen capability
+                window.styleMask.remove(.fullScreen) // Ensure no fullscreen option
+                window.setContentSize(NSSize(width: 340, height: 730)) // Enforce fixed size
+                // Optionally hide the fullscreen button visually
+                window.standardWindowButton(.zoomButton)?.isHidden = true
+            }
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 // Preview layer wrapper for SwiftUI

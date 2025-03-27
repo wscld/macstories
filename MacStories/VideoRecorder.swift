@@ -65,13 +65,15 @@ class VideoRecorder: NSObject, ObservableObject {
         case .authorized:
             // Video permission already granted, check audio
             checkAudioPermission()
+        case .notDetermined:
+            print("Video permission not set, handling via UI button")
         case .denied, .restricted:
             print("Video permission denied or restricted")
             DispatchQueue.main.async {
                 self.isCameraAvailable = false
             }
         @unknown default:
-            print("Audio permission denied or restricted")
+            fatalError("Unknown video authorization status")
         }
     }
     
@@ -83,13 +85,16 @@ class VideoRecorder: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 self.initializeSession()
             }
+        case .notDetermined:
+            // Request audio permission
+            print("Audio permission not set, handling via UI button")
         case .denied, .restricted:
             print("Audio permission denied or restricted")
             DispatchQueue.main.async {
                 self.isCameraAvailable = false
             }
         @unknown default:
-            print("Audio permission denied or restricted")
+            fatalError("Unknown audio authorization status")
         }
     }
     
@@ -279,6 +284,15 @@ class VideoRecorder: NSObject, ObservableObject {
         
         // Check for audio tracks
         let audioTracks = asset.tracks(withMediaType: .audio)
+        print("Number of audio tracks in initial video: \(audioTracks.count)")
+        if let audioTrack = audioTracks.first {
+            let formatDescriptions = audioTrack.formatDescriptions as! [CMFormatDescription]
+            for desc in formatDescriptions {
+                let audioFormat = CMAudioFormatDescriptionGetStreamBasicDescription(desc)?.pointee
+                print("Audio format: sampleRate=\(audioFormat?.mSampleRate ?? 0), channels=\(audioFormat?.mChannelsPerFrame ?? 0), formatID=\(String(format: "%x", audioFormat?.mFormatID ?? 0))")
+            }
+            print("Audio duration: \(audioTrack.timeRange.duration.seconds) seconds")
+        }
         print("Number of audio tracks in source asset: \(audioTracks.count)")
         
         // Use AVMutableComposition to explicitly include audio and video tracks
@@ -410,7 +424,7 @@ extension VideoRecorder: AVCaptureFileOutputRecordingDelegate {
                 self.transcodeVideo(from: outputFileURL, to: finalURL) { success in
                     if success {
                         // Clean up temporary file
-                        try? FileManager.default.removeItem(at: outputFileURL)
+                        //try? FileManager.default.removeItem(at: outputFileURL)
                         DispatchQueue.main.async{
                             self.showSavePanel(for: finalURL)
                         }
