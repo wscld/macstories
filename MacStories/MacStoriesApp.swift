@@ -7,14 +7,19 @@
 
 import SwiftUI
 
+class AppState: ObservableObject {
+    @Published var showPickers = false
+}
 
 @main
 struct MacStoriesApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @StateObject private var appState = AppState() // Shared state
     
     var body: some Scene {
         WindowGroup {
             ContentView().background(TranslucentBackgroundView()) // Apply translucency
+                .environmentObject(appState) // Inject into ContentView
         }
         .windowStyle(HiddenTitleBarWindowStyle()) // Hide title bar for better aesthetics
         .commands {
@@ -22,6 +27,14 @@ struct MacStoriesApp: App {
                 Button("About MacStories") {
                     AboutWindowController.shared?.showWindow() ?? AboutWindowController().showWindow()
                 }
+            }
+            CommandGroup(replacing: .appVisibility) {
+                Button(appState.showPickers ? "Hide Device Settings" : "Show Device Settings") {
+                    withAnimation {
+                        appState.showPickers.toggle()
+                    }
+                }
+                .keyboardShortcut("d", modifiers: [.command])
             }
         }
     }

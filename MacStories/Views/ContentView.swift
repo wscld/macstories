@@ -11,113 +11,139 @@ import AVFoundation
 struct ContentView: View {
     @StateObject private var recorder = VideoRecorder()
     @State private var refreshKey = UUID()
-    @State private var isSwitching = false // Track switching state
-    
+    @State private var isSwitching = false
+    @EnvironmentObject private var appState: AppState // Access shared state
+
     var body: some View {
-            VStack(spacing: -10) {
-                ZStack {
-                    if let previewLayer = recorder.previewLayer {
-                        VideoPreviewView(previewLayer: previewLayer)
-                            .frame(width: 320, height: 568)
-                            .cornerRadius(10)
-                            .animation(.bouncy, value: recorder.previewLayer)
-                            .id(refreshKey)
-                            .opacity(isSwitching ? 0.5 : 1.0) // Fade out during switch
-                            .transition(.opacity) // Smooth fade transition
-                            .onAppear {
-                                print("Preview layer rendered in UI: \(previewLayer)")
-                            }
-                    } else {
-                        VStack {
-                            Text("Camera or Microphone Unavailable")
-                                .font(.headline)
-                            Text("Please grant camera and microphone permissions in System Settings > Privacy & Security.")
-                                .font(.subheadline)
-                                .multilineTextAlignment(.center)
-                                .padding(20)
-                        }
-                        .frame(width: 320, height: 568, alignment: .center)
+        VStack(spacing: -15) {
+            ZStack {
+                if let previewLayer = recorder.previewLayer {
+                    VideoPreviewView(previewLayer: previewLayer)
+                        .frame(width: 320, height: 568)
+                        .cornerRadius(10)
                         .animation(.bouncy, value: recorder.previewLayer)
-                        .background {
-                            TranslucentBackgroundView()
-                                .cornerRadius(16)
-                        }
+                        .id(refreshKey)
+                        .opacity(isSwitching ? 0.5 : 1.0)
+                        .transition(.opacity)
                         .onAppear {
-                            print("Preview layer unavailable in UI")
+                            print("Preview layer rendered in UI: \(previewLayer)")
                         }
+                } else {
+                    VStack {
+                        Text("Camera or Microphone Unavailable")
+                            .font(.headline)
+                        Text("Please grant camera and microphone permissions in System Settings > Privacy & Security.")
+                            .font(.subheadline)
+                            .multilineTextAlignment(.center)
+                            .padding(20)
                     }
-                    
-                    // Loading indicator during switch
-                    if isSwitching {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .scaleEffect(1.5)
-                            .frame(width: 320, height: 568)
+                    .frame(width: 320, height: 568, alignment: .center)
+                    .animation(.bouncy, value: recorder.previewLayer)
+                    .background {
+                        TranslucentBackgroundView()
+                            .cornerRadius(16)
+                    }
+                    .onAppear {
+                        print("Preview layer unavailable in UI")
                     }
                 }
-                .animation(.easeInOut(duration: 0.3), value: isSwitching) // Smooth animation
                 
-                VStack(spacing: 10) {
-                    HStack(spacing:10){
+                if isSwitching {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .scaleEffect(1.5)
+                        .frame(width: 320, height: 568)
+                }
+            }
+            .animation(.easeInOut(duration: 0.3), value: isSwitching)
+            
+            if appState.showPickers {
+                HStack(spacing: 15) {
+                    VStack(alignment: .leading) {
+                        Text("Camera")
+                            .font(.caption)
+                            .foregroundColor(.gray)
                         Picker("", selection: $recorder.selectedCamera) {
                             ForEach(recorder.availableCameras, id: \.self) { camera in
                                 Text(camera.localizedName).tag(camera as AVCaptureDevice?)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())
+                        .frame(maxWidth: 150)
                         .onChange(of: recorder.selectedCamera) { _ in
                             withAnimation {
-                                isSwitching = true // Show loading
+                                isSwitching = true
                             }
                             recorder.updateSession()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 withAnimation {
-                                    isSwitching = false // Hide loading
-                                    refreshKey = UUID() // Trigger redraw
+                                    isSwitching = false
+                                    refreshKey = UUID()
                                 }
                             }
                         }
-                        
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("Audio")
+                            .font(.caption)
+                            .foregroundColor(.gray)
                         Picker("", selection: $recorder.selectedAudioDevice) {
                             ForEach(recorder.availableAudioDevices, id: \.self) { audio in
                                 Text(audio.localizedName).tag(audio as AVCaptureDevice?)
                             }
                         }
                         .pickerStyle(MenuPickerStyle())
+                        .frame(maxWidth: 150)
                         .onChange(of: recorder.selectedAudioDevice) { _ in
                             withAnimation {
-                                isSwitching = true // Show loading
+                                isSwitching = true
                             }
                             recorder.updateSession()
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                 withAnimation {
-                                    isSwitching = false // Hide loading
-                                    refreshKey = UUID() // Trigger redraw
+                                    isSwitching = false
+                                    refreshKey = UUID()
                                 }
                             }
                         }
                     }
-                    
-                    AudioWaveView(recorder: recorder)
-                    RecorderView(recorder: recorder)
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(20)
+                .padding(.horizontal, 15)
+                .padding(.top, 15)
+                .padding(.bottom, 25)
+                .zIndex(10)
                 .background {
                     TranslucentBackgroundView()
                         .cornerRadius(16)
                         .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 6)
                 }
+                .transition(.move(edge: .top).combined(with: .opacity))
             }
-            .padding(5)
-            .frame(minWidth: 330, maxWidth: 330, minHeight: 780, maxHeight: 780)
-            .windowResizeBehavior(.disabled)
-            .onAppear {
-                recorder.setupCamera()
-                print("ContentView appeared, calling setupCamera")
+            
+            VStack(spacing: 10) {
+                AudioWaveView(recorder: recorder)
+                RecorderView(recorder: recorder)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(20)
+            .background {
+                TranslucentBackgroundView()
+                    .cornerRadius(16)
+                    .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 6)
             }
         }
+        .padding(5)
+        .frame(minWidth: 330, maxWidth: 330, minHeight: 780, maxHeight: 780)
+        .windowResizeBehavior(.disabled)
+        .animation(.easeInOut(duration: 0.3), value: appState.showPickers)
+        .onAppear {
+            recorder.setupCamera()
+            print("ContentView appeared, calling setupCamera")
+        }
     }
+}
+
 // Preview layer wrapper for SwiftUI
 struct VideoPreviewView: NSViewRepresentable {
     let previewLayer: AVCaptureVideoPreviewLayer
@@ -137,7 +163,7 @@ struct VideoPreviewView: NSViewRepresentable {
 struct TranslucentBackgroundView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = .popover // Best for dark translucent effects
+        view.material = .popover
         view.blendingMode = .withinWindow
         view.state = .active
         return view
