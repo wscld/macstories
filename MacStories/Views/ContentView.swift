@@ -13,7 +13,7 @@ struct ContentView: View {
     @State private var refreshKey = UUID()
     @State private var isSwitching = false
     @EnvironmentObject private var appState: AppState // Access shared state
-
+    
     var body: some View {
         VStack(spacing: -15) {
             ZStack {
@@ -140,6 +140,13 @@ struct ContentView: View {
         .onAppear {
             recorder.setupCamera()
             print("ContentView appeared, calling setupCamera")
+        }.onAppear(){
+            let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore4")
+            print("hasLaunchedBefore=\(hasLaunchedBefore)")
+            if !hasLaunchedBefore {
+                IntroWindowController.shared?.showWindow() ?? IntroWindowController().showWindow()
+                //UserDefaults.standard.set(true, forKey: "hasLaunchedBefore4")
+            }
         }
     }
 }

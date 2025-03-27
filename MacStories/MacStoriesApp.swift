@@ -19,7 +19,7 @@ struct MacStoriesApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView().background(TranslucentBackgroundView()) // Apply translucency
-                .environmentObject(appState) // Inject into ContentView
+                .environmentObject(appState)
         }
         .windowStyle(HiddenTitleBarWindowStyle()) // Hide title bar for better aesthetics
         .commands {
