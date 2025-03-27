@@ -16,6 +16,10 @@ class VideoRecorder: NSObject, ObservableObject {
     @Published var previewLayer: AVCaptureVideoPreviewLayer?
     @Published var audioLevel: Float = 0.0 // For audio wave visualization
     @Published var timeRemaining: Int = 60
+    @Published var availableCameras: [AVCaptureDevice] = []
+    @Published var availableAudioDevices: [AVCaptureDevice] = []
+    @Published var selectedCamera: AVCaptureDevice?
+    @Published var selectedAudioDevice: AVCaptureDevice?
     
     private var timerCountdown:Timer?
     private var captureSession: AVCaptureSession?
@@ -23,39 +27,105 @@ class VideoRecorder: NSObject, ObservableObject {
     private var audioRecorder: AVAudioRecorder?
     private var levelTimer: Timer?
     
+    func fetchDevices() {
+        // Fetch available cameras
+        let cameraDiscovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInWideAngleCamera],
+            mediaType: .video,
+            position: .unspecified
+        )
+        availableCameras = cameraDiscovery.devices
+        
+        // Fetch available audio devices
+        let audioDiscovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInMicrophone, .externalUnknown],
+            mediaType: .audio,
+            position: .unspecified
+        )
+        availableAudioDevices = audioDiscovery.devices
+        
+        guard let defaultAudioDevice = AVCaptureDevice.default(for: .audio),
+              let audioInput = try? AVCaptureDeviceInput(device: defaultAudioDevice) else {
+            print("Failed to initialize audio device")
+            return
+        }
+        
+        // Set defaults if not already selected
+        if selectedCamera == nil, let defaultCamera = availableCameras.first {
+            selectedCamera = defaultCamera
+        }
+        if selectedAudioDevice == nil {
+            selectedAudioDevice = defaultAudioDevice
+        }
+    }
+    
     func setupCamera() {
-        // Request video permissions
-        AVCaptureDevice.requestAccess(for: .video) { videoGranted in
-            if videoGranted {
-                // Request audio permissions
-                AVCaptureDevice.requestAccess(for: .audio) { audioGranted in
-                    if audioGranted {
-                        DispatchQueue.main.async {
-                            self.initializeSession()
-                        }
-                    } else {
-                        print("Audio permission denied")
-                        DispatchQueue.main.async {
-                            self.isCameraAvailable = false
-                        }
+        // Check current authorization status for video
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            // Video permission already granted, check audio
+            checkAudioPermission()
+        case .notDetermined:
+            // Request video permission
+            AVCaptureDevice.requestAccess(for: .video) { videoGranted in
+                if videoGranted {
+                    self.checkAudioPermission()
+                } else {
+                    print("Video permission denied")
+                    DispatchQueue.main.async {
+                        self.isCameraAvailable = false
                     }
                 }
-            } else {
-                print("Video permission denied")
-                DispatchQueue.main.async {
-                    self.isCameraAvailable = false
+            }
+        case .denied, .restricted:
+            print("Video permission denied or restricted")
+            DispatchQueue.main.async {
+                self.isCameraAvailable = false
+            }
+        @unknown default:
+            fatalError("Unknown video authorization status")
+        }
+    }
+    
+    private func checkAudioPermission() {
+        // Check current authorization status for audio
+        switch AVCaptureDevice.authorizationStatus(for: .audio) {
+        case .authorized:
+            // Both permissions granted, initialize session
+            DispatchQueue.main.async {
+                self.initializeSession()
+            }
+        case .notDetermined:
+            // Request audio permission
+            AVCaptureDevice.requestAccess(for: .audio) { audioGranted in
+                if audioGranted {
+                    DispatchQueue.main.async {
+                        self.initializeSession()
+                    }
+                } else {
+                    print("Audio permission denied")
+                    DispatchQueue.main.async {
+                        self.isCameraAvailable = false
+                    }
                 }
             }
+        case .denied, .restricted:
+            print("Audio permission denied or restricted")
+            DispatchQueue.main.async {
+                self.isCameraAvailable = false
+            }
+        @unknown default:
+            fatalError("Unknown audio authorization status")
         }
     }
     
     private func initializeSession() {
         let session = AVCaptureSession()
-        session.sessionPreset = .hd1920x1080 // Record at high resolution, we’ll transcode later
+        session.sessionPreset = .hd1920x1080
         
-        // Add video input (prefer front camera, fallback to back)
-        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) ??
-                              AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+        fetchDevices()
+        
+        guard let videoDevice = selectedCamera,
               let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
             print("Failed to initialize video device")
             return
@@ -63,77 +133,90 @@ class VideoRecorder: NSObject, ObservableObject {
         
         if session.canAddInput(videoInput) {
             session.addInput(videoInput)
+            print("Video input added: \(videoDevice.localizedName)")
         } else {
             print("Failed to add video input")
             return
         }
         
-        let audioDevices = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInMicrophone, .externalUnknown],
-                                                            mediaType: .audio,
-                                                            position: .unspecified).devices
-        for device in audioDevices {
-            print("Dispositivo de áudio encontrado: \(device.localizedName)")
-        }
-        
-        // Add audio input
-        guard let audioDevice = AVCaptureDevice.default(for: .audio),
+        guard let audioDevice = selectedAudioDevice,
               let audioInput = try? AVCaptureDeviceInput(device: audioDevice) else {
             print("Failed to initialize audio device")
             return
         }
         
-        print("Audio device: \(audioDevice.localizedName)")
-        
         if session.canAddInput(audioInput) {
             session.addInput(audioInput)
-            print("Audio input added successfully")
+            print("Audio input added: \(audioDevice.localizedName)")
         } else {
             print("Failed to add audio input")
             return
         }
-        setupAudioRecorder();
-        // Add movie output
+        
+        setupAudioRecorder()
+        
         let output = AVCaptureMovieFileOutput()
         if session.canAddOutput(output) {
             session.addOutput(output)
-            
-            // Configure output connection (no mirroring, portrait orientation)
             if let videoConnection = output.connection(with: .video) {
                 if videoConnection.isVideoOrientationSupported {
                     videoConnection.videoOrientation = .portrait
                 }
             }
-            // Ensure audio connection is active
-            if let audioConnection = output.connection(with: .audio) {
-                print("Audio connection for movie output is active: \(audioConnection.isEnabled)")
-            }
         }
-        self.movieOutput = output
         
-        // Set up preview layer
+        // Set up preview layer off-thread
         let preview = AVCaptureVideoPreviewLayer(session: session)
         preview.videoGravity = .resizeAspectFill
-        
-        // Configure preview connection
         if let connection = preview.connection {
             if connection.isVideoMirroringSupported {
                 connection.automaticallyAdjustsVideoMirroring = false
                 connection.isVideoMirrored = true
-                print("Preview connection mirroring set to: \(connection.isVideoMirrored)")
+                print("Preview mirroring set to: \(connection.isVideoMirrored)")
             }
             if connection.isVideoOrientationSupported {
                 connection.videoOrientation = .portrait
+                print("Preview orientation set to portrait")
             }
         }
+        preview.needsDisplayOnBoundsChange = true
+        print("Preview layer created: \(preview), session: \(session)")
         
-        self.previewLayer = preview
+        // Update UI and start session on main thread
+        DispatchQueue.main.async {
+            self.movieOutput = output
+            self.previewLayer = preview
+            self.captureSession = session
+            session.startRunning()
+            self.isCameraAvailable = true
+            print("Session started with new preview layer: \(preview)")
+        }
+    }
+    
+    func updateSession() {
+        guard let session = captureSession else {
+            print("No capture session to update")
+            return
+        }
         
-        // Start session
-        session.startRunning()
-        self.captureSession = session
-        self.isCameraAvailable = true
-        
-        print("Session preset: \(session.sessionPreset.rawValue)")
+        // Stop the session asynchronously
+        DispatchQueue.global(qos: .userInitiated).async {
+            session.stopRunning()
+            session.inputs.forEach { session.removeInput($0) }
+            session.outputs.forEach { session.removeOutput($0) }
+            
+            // Clear old preview layer on main thread
+            DispatchQueue.main.async {
+                self.previewLayer?.removeFromSuperlayer()
+                self.previewLayer = nil
+                self.captureSession = nil
+                self.movieOutput = nil
+                print("Session and preview cleared")
+            }
+            
+            // Reinitialize on background thread, then update UI
+            self.initializeSession()
+        }
     }
     
     func startRecording() {
