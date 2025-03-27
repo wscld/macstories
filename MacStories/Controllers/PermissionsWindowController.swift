@@ -12,7 +12,9 @@ class PermissionsWindowController: NSWindowController {
     static var shared: PermissionsWindowController?
 
     convenience init() {
-        let view = PermissionsRequestView()
+        let view = PermissionsRequestView(){
+            
+        }
         let hostingController = NSHostingController(rootView: view)
 
         let window = NSWindow(

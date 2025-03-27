@@ -44,9 +44,9 @@ struct MacStoriesApp: App {
 class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         if let window = NSApplication.shared.windows.first {
-            window.setContentSize(NSSize(width: 330, height: 780))
-            window.minSize = NSSize(width: 330, height: 780)
-            window.maxSize = NSSize(width: 330, height: 780)
+            window.setContentSize(NSSize(width: 340, height: 730))
+            window.minSize = NSSize(width: 340, height: 730)
+            window.maxSize = NSSize(width: 340, height: 730)
             window.styleMask.remove(.resizable) // Prevent resizing
             
             window.isOpaque = false

@@ -65,25 +65,13 @@ class VideoRecorder: NSObject, ObservableObject {
         case .authorized:
             // Video permission already granted, check audio
             checkAudioPermission()
-        case .notDetermined:
-            // Request video permission
-            AVCaptureDevice.requestAccess(for: .video) { videoGranted in
-                if videoGranted {
-                    self.checkAudioPermission()
-                } else {
-                    print("Video permission denied")
-                    DispatchQueue.main.async {
-                        self.isCameraAvailable = false
-                    }
-                }
-            }
         case .denied, .restricted:
             print("Video permission denied or restricted")
             DispatchQueue.main.async {
                 self.isCameraAvailable = false
             }
         @unknown default:
-            fatalError("Unknown video authorization status")
+            print("Audio permission denied or restricted")
         }
     }
     
@@ -95,27 +83,13 @@ class VideoRecorder: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 self.initializeSession()
             }
-        case .notDetermined:
-            // Request audio permission
-            AVCaptureDevice.requestAccess(for: .audio) { audioGranted in
-                if audioGranted {
-                    DispatchQueue.main.async {
-                        self.initializeSession()
-                    }
-                } else {
-                    print("Audio permission denied")
-                    DispatchQueue.main.async {
-                        self.isCameraAvailable = false
-                    }
-                }
-            }
         case .denied, .restricted:
             print("Audio permission denied or restricted")
             DispatchQueue.main.async {
                 self.isCameraAvailable = false
             }
         @unknown default:
-            fatalError("Unknown audio authorization status")
+            print("Audio permission denied or restricted")
         }
     }
     

@@ -14,8 +14,9 @@ struct PermissionsRequestView: View {
     @State private var titleOpacity: Double = 0.0
     @State private var buttonScale: CGFloat = 0.8
     @State private var buttonOpacity: Double = 0.0
-    @Environment(\.dismiss) private var dismiss
-
+    @State private var loading = false
+    var onReady : () -> ()
+    
     var body: some View {
         VStack(spacing: 20) {
             Text("Welcome to MacStories")
@@ -28,7 +29,7 @@ struct PermissionsRequestView: View {
                 }
 
             Text("We need your permission to access the camera and microphone to record videos.")
-                .font(.system(size: 16))
+                .font(.system(size: 14))
                 .multilineTextAlignment(.center)
                 .foregroundColor(.gray)
                 .padding(.horizontal, 40)
@@ -70,9 +71,10 @@ struct PermissionsRequestView: View {
             }
 
             // Continue Button (only visible when both permissions are granted)
-            if cameraPermissionStatus == .authorized && microphonePermissionStatus == .authorized {
+            if cameraPermissionStatus == .authorized && microphonePermissionStatus == .authorized && !loading {
                 Button(action: {
-                    dismiss()
+                    loading.toggle()
+                    onReady()
                 }) {
                     Text("Continue")
                         .font(.system(size: 16, weight: .semibold))
@@ -93,9 +95,8 @@ struct PermissionsRequestView: View {
                 }
             }
         }
-        .frame(width: 400, height: 300)
-        .background(Color.white)
-        .shadow(radius: 5)
+        .frame(width: 320, height: 568)
+        .cornerRadius(10)
     }
 
     private func requestCameraPermission() {
@@ -143,6 +144,8 @@ struct PermissionButton: View {
 // Preview
 struct PermissionsRequestView_Previews: PreviewProvider {
     static var previews: some View {
-        PermissionsRequestView()
+        PermissionsRequestView{
+            
+        }
     }
 }

@@ -30,12 +30,9 @@ struct ContentView: View {
                         }
                 } else {
                     VStack {
-                        Text("Camera or Microphone Unavailable")
-                            .font(.headline)
-                        Text("Please grant camera and microphone permissions in System Settings > Privacy & Security.")
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
-                            .padding(20)
+                        PermissionsRequestView {
+                            recorder.setupCamera()
+                        }
                     }
                     .frame(width: 320, height: 568, alignment: .center)
                     .animation(.bouncy, value: recorder.previewLayer)
@@ -134,7 +131,7 @@ struct ContentView: View {
             }
         }
         .padding(5)
-        .frame(minWidth: 330, maxWidth: 330, minHeight: 780, maxHeight: 780)
+        .frame(minWidth: 340, maxWidth: 340, minHeight: 730, maxHeight: 730)
         .windowResizeBehavior(.disabled)
         .animation(.easeInOut(duration: 0.3), value: appState.showPickers)
         .onAppear {
@@ -177,4 +174,11 @@ struct TranslucentBackgroundView: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
+// Preview
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        ContentView().environmentObject(AppState())
+    }
 }
