@@ -379,34 +379,13 @@ class VideoRecorder: NSObject, ObservableObject {
         var preferredTransform = videoTrack.preferredTransform
         print("Source video natural size: \(naturalSize), preferred transform: \(preferredTransform)")
                 
-        // Adjust natural size based on preferred transform (e.g., if rotated)
-        if preferredTransform.a == 0 && preferredTransform.d == 0 {
-            // 90 or 270 degrees rotation
-            naturalSize = CGSize(width: naturalSize.height, height: naturalSize.width)
-        }
-        
-        // Explicitly remove mirroring by applying a corrective transform
-        let aspectRatio = naturalSize.width / naturalSize.height
-        let targetAspectRatio: CGFloat = 1080.0 / 1920.0 // 9:16
-        
-        // Start with an identity transform and build from scratch
+ 
         var transform = CGAffineTransform.identity
         
-        // Apply scaling to fill the 1080x1920 frame (mimicking resizeAspectFill)
-        if aspectRatio > targetAspectRatio {
-            let scale = naturalSize.width / naturalSize.height  // Scale based on height (1920px)
-            transform = CGAffineTransform(scaleX: scale, y: scale)
-            print("width=\(naturalSize.width) height=\(naturalSize.height) scale=\(scale)")
-            let offsetX = 0.7619 * (naturalSize.width - 1080)
-            transform = transform.translatedBy(x: -offsetX, y: 0)
-        } else {
-            // Source is taller than 9:16, scale to fit width and crop top/bottom
-            let scale = 1080.0 / naturalSize.width
-            transform = CGAffineTransform(scaleX: scale, y: scale)
-            let scaledHeight = naturalSize.height * scale
-            let offsetY = (scaledHeight - 1920.0) / 2.0
-            transform = transform.translatedBy(x: 0, y: -offsetY)
-        }
+        let scale = 1920.0 / naturalSize.height  // Scale based on height (1920px)
+        transform = CGAffineTransform(scaleX: scale, y: scale)
+        let offsetX = naturalSize.width / 3
+        transform = transform.translatedBy(x: -offsetX, y: 0)
         
         transform = transform.scaledBy(x: -1, y: 1)
         transform = transform.translatedBy(x: -naturalSize.width, y: 0)
