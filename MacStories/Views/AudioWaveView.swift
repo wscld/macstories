@@ -24,7 +24,7 @@ struct AudioWaveView: View {
                 // Simple wave effect based on audio level
                 for x in stride(from: 0, to: width, by: 2) {
                     let normalizedX = x / width
-                    let wave = sin(normalizedX * 10 * .pi) * amplitude
+                    let wave = sin(normalizedX * -1 * .pi) * amplitude
                     path.move(to: CGPoint(x: x, y: midY))
                     path.addLine(to: CGPoint(x: x, y: midY + wave))
                 }

@@ -54,7 +54,7 @@ struct ContentView: View {
             }
             .animation(.easeInOut(duration: 0.3), value: isSwitching)
             
-            if appState.showPickers {
+            if appState.showPickers && !recorder.isRecording && recorder.isCameraAvailable {
                 HStack(spacing: 15) {
                     VStack(alignment: .leading) {
                         Text("Camera")

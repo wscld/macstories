@@ -61,7 +61,7 @@ struct RecorderView: View {
 
             ZStack(alignment: .leading) {
                 let maxWidth: CGFloat = 180
-                let percentage = CGFloat((recorder.timeRemaining * Int(maxWidth)) / 60)
+                let percentage = CGFloat((recorder.timeRemaining * Int(maxWidth)) / recorder.maxDuration)
                 let safeWidth = max(percentage, 15) // Evita que fique muito fina
 
                 // Gradiente de cor suave

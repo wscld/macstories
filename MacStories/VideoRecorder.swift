@@ -15,6 +15,7 @@ class VideoRecorder: NSObject, ObservableObject {
     @Published var isCameraAvailable = false
     @Published var previewLayer: AVCaptureVideoPreviewLayer?
     @Published var audioLevel: Float = 0.0 // For audio wave visualization
+    @Published var maxDuration: Int = 60
     @Published var timeRemaining: Int = 60
     @Published var availableCameras: [AVCaptureDevice] = []
     @Published var availableAudioDevices: [AVCaptureDevice] = []
@@ -221,13 +222,9 @@ class VideoRecorder: NSObject, ObservableObject {
             if(self != nil){
                 self!.timeRemaining = self!.timeRemaining > 0 ? self!.timeRemaining - 1 : 0
                 print("time remaining=\(self!.timeRemaining)")
-            }
-        }
-        
-        // Stop after 60 seconds
-        DispatchQueue.main.asyncAfter(deadline: .now() + 60) {
-            if self.isRecording {
-                self.stopRecording()
+                if self!.isRecording && self!.timeRemaining == 0 {
+                    self!.stopRecording()
+                }
             }
         }
     }
@@ -239,7 +236,7 @@ class VideoRecorder: NSObject, ObservableObject {
         timerCountdown?.invalidate()
         levelTimer = nil
         audioLevel = 0.0
-        timeRemaining = 60;
+        timeRemaining = maxDuration;
     }
     
     func setupAudioRecorder() {
@@ -352,7 +349,7 @@ class VideoRecorder: NSObject, ObservableObject {
         if aspectRatio > targetAspectRatio {
             let scale = 1920.0 / naturalSize.height  // Scale based on height (1920px)
             transform = CGAffineTransform(scaleX: scale, y: scale)
-            let offsetX = 580.0
+            let offsetX = 640.0
             transform = transform.translatedBy(x: -offsetX, y: 0)
         } else {
             // Source is taller than 9:16, scale to fit width and crop top/bottom
