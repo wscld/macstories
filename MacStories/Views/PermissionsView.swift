@@ -94,6 +94,30 @@ struct PermissionsRequestView: View {
                     }
                 }
             }
+            
+            if loading {
+                Button(action: {
+                    
+                }) {
+                    Text("Loading camera")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 20)
+                        .background(Color.blue)
+                        .cornerRadius(10)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .scaleEffect(buttonScale)
+                .disabled(true)
+                .opacity(buttonOpacity)
+                .onAppear {
+                    withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.6)) {
+                        buttonScale = 1.0
+                        buttonOpacity = 1.0
+                    }
+                }
+            }
         }
         .frame(width: 320, height: 568)
         .cornerRadius(10)

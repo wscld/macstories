@@ -21,6 +21,8 @@ class VideoRecorder: NSObject, ObservableObject {
     @Published var availableAudioDevices: [AVCaptureDevice] = []
     @Published var selectedCamera: AVCaptureDevice?
     @Published var selectedAudioDevice: AVCaptureDevice?
+    @Published var showAlert = false
+    @Published var alertMessage = ""
     
     private var timerCountdown:Timer?
     private var captureSession: AVCaptureSession?
@@ -47,6 +49,8 @@ class VideoRecorder: NSObject, ObservableObject {
         
         guard let defaultAudioDevice = AVCaptureDevice.default(for: .audio),
               let audioInput = try? AVCaptureDeviceInput(device: defaultAudioDevice) else {
+            alertMessage = "Failed to initialize audio device"
+            showAlert = true
             print("Failed to initialize audio device")
             return
         }
@@ -60,16 +64,32 @@ class VideoRecorder: NSObject, ObservableObject {
         }
     }
     
-    func setupCamera() {
+    func setupCamera(askPermission: Bool = false) {
         // Check current authorization status for video
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized:
             // Video permission already granted, check audio
-            checkAudioPermission()
+            checkAudioPermission(askPermission: askPermission)
         case .notDetermined:
-            print("Video permission not set, handling via UI button")
+            if(askPermission) {
+                AVCaptureDevice.requestAccess(for: .video) { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self.checkAudioPermission()
+                        } else {
+                            self.alertMessage = "Camera permission denied. Please enable it in System Preferences."
+                            self.showAlert = true
+                        }
+                    }
+                }
+            }else{
+                print("Video permission not set, handling via UI button")
+            }
         case .denied, .restricted:
             print("Video permission denied or restricted")
+            alertMessage = "Video permission denied or restricted"
+            showAlert = true
+            
             DispatchQueue.main.async {
                 self.isCameraAvailable = false
             }
@@ -78,7 +98,7 @@ class VideoRecorder: NSObject, ObservableObject {
         }
     }
     
-    private func checkAudioPermission() {
+    private func checkAudioPermission(askPermission: Bool = false) {
         // Check current authorization status for audio
         switch AVCaptureDevice.authorizationStatus(for: .audio) {
         case .authorized:
@@ -87,10 +107,24 @@ class VideoRecorder: NSObject, ObservableObject {
                 self.initializeSession()
             }
         case .notDetermined:
-            // Request audio permission
-            print("Audio permission not set, handling via UI button")
+            if(askPermission){
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    DispatchQueue.main.async {
+                        if granted {
+                            self.initializeSession()
+                        } else {
+                            self.alertMessage = "Microphone permission denied. Please enable it in System Preferences."
+                            self.showAlert = true
+                        }
+                    }
+                }
+            }else{
+                print("Audio permission not set, handling via UI button")
+            }
         case .denied, .restricted:
             print("Audio permission denied or restricted")
+            alertMessage = "Audio permission denied or restricted"
+            showAlert = true
             DispatchQueue.main.async {
                 self.isCameraAvailable = false
             }
@@ -101,12 +135,14 @@ class VideoRecorder: NSObject, ObservableObject {
     
     private func initializeSession() {
         let session = AVCaptureSession()
-        session.sessionPreset = .hd1920x1080
+        session.sessionPreset = .high
         
         fetchDevices()
         
         guard let videoDevice = selectedCamera,
               let videoInput = try? AVCaptureDeviceInput(device: videoDevice) else {
+            alertMessage = "Failed to initialize video device"
+            showAlert = true
             print("Failed to initialize video device")
             return
         }
@@ -115,12 +151,16 @@ class VideoRecorder: NSObject, ObservableObject {
             session.addInput(videoInput)
             print("Video input added: \(videoDevice.localizedName)")
         } else {
+            alertMessage = "Failed to add video input"
+            showAlert = true
             print("Failed to add video input")
             return
         }
         
         guard let audioDevice = selectedAudioDevice,
               let audioInput = try? AVCaptureDeviceInput(device: audioDevice) else {
+            alertMessage = "Failed to initialize audio device"
+            showAlert = true
             print("Failed to initialize audio device")
             return
         }
@@ -129,6 +169,8 @@ class VideoRecorder: NSObject, ObservableObject {
             session.addInput(audioInput)
             print("Audio input added: \(audioDevice.localizedName)")
         } else {
+            alertMessage = "Failed to add audio input"
+            showAlert = true
             print("Failed to add audio input")
             return
         }
@@ -170,6 +212,11 @@ class VideoRecorder: NSObject, ObservableObject {
             session.startRunning()
             self.isCameraAvailable = true
             print("Session started with new preview layer: \(preview)")
+            
+            if(!session.isRunning){
+                self.alertMessage = "Session is not running"
+                self.showAlert = true
+            }
         }
     }
     
@@ -331,7 +378,7 @@ class VideoRecorder: NSObject, ObservableObject {
         var naturalSize = videoTrack.naturalSize
         var preferredTransform = videoTrack.preferredTransform
         print("Source video natural size: \(naturalSize), preferred transform: \(preferredTransform)")
-        
+                
         // Adjust natural size based on preferred transform (e.g., if rotated)
         if preferredTransform.a == 0 && preferredTransform.d == 0 {
             // 90 or 270 degrees rotation
@@ -347,9 +394,10 @@ class VideoRecorder: NSObject, ObservableObject {
         
         // Apply scaling to fill the 1080x1920 frame (mimicking resizeAspectFill)
         if aspectRatio > targetAspectRatio {
-            let scale = 1920.0 / naturalSize.height  // Scale based on height (1920px)
+            let scale = naturalSize.width / naturalSize.height  // Scale based on height (1920px)
             transform = CGAffineTransform(scaleX: scale, y: scale)
-            let offsetX = 640.0
+            print("width=\(naturalSize.width) height=\(naturalSize.height) scale=\(scale)")
+            let offsetX = 0.7619 * (naturalSize.width - 1080)
             transform = transform.translatedBy(x: -offsetX, y: 0)
         } else {
             // Source is taller than 9:16, scale to fit width and crop top/bottom

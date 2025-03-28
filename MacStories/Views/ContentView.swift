@@ -31,7 +31,9 @@ struct ContentView: View {
                 } else {
                     VStack {
                         PermissionsRequestView {
-                            recorder.setupCamera()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                recorder.setupCamera(askPermission: true)
+                            }
                         }
                     }
                     .frame(width: 320, height: 568, alignment: .center)
@@ -138,11 +140,16 @@ struct ContentView: View {
             recorder.setupCamera()
             print("ContentView appeared, calling setupCamera")
             let hasLaunchedBefore = UserDefaults.standard.bool(forKey: "hasLaunchedBefore5")
-            print("hasLaunchedBefore=\(hasLaunchedBefore)")
             if !hasLaunchedBefore {
                 IntroWindowController.shared?.showWindow() ?? IntroWindowController().showWindow()
-                //UserDefaults.standard.set(true, forKey: "hasLaunchedBefore5")
+                UserDefaults.standard.set(true, forKey: "hasLaunchedBefore5")
             }
+        }.alert(isPresented: $recorder.showAlert) {
+            Alert(
+                title: Text("Error"),
+                message: Text(recorder.alertMessage),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 }
